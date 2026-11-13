@@ -1,0 +1,25 @@
+
+import sqlite3
+from pathlib import Path
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+DATA_DIR = PROJECT_ROOT / "data"
+DATABASE_PATH = DATA_DIR / "jarvis.db"
+
+
+def get_connection():
+    """Create and return a SQLite database connection."""
+
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    connection = sqlite3.connect(DATABASE_PATH)
+
+    # Enable foreign key relationships
+    connection.execute("PRAGMA foreign_keys = ON")
+
+    # Return rows as dictionary-like objects
+    connection.row_factory = sqlite3.Row
+
+    return connection
