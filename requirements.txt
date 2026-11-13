@@ -1,0 +1,6 @@
+# JARVIS - Core Backend Dependencies
+# API Framework
+fastapi
+uvicorn[standard]
+# Configuration and Environment
+pydantic-settings
