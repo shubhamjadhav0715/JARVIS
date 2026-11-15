@@ -8,6 +8,7 @@ from app.db.repository import (
     get_messages,
     get_all_conversations,
     update_conversation_title,
+    delete_conversation,
 )
 
 from app.schemas.conversation import (
@@ -189,4 +190,36 @@ def edit_conversation(
         raise HTTPException(
             status_code=500,
             detail="Unable to update conversation."
+        )
+
+
+@router.delete(
+    "/{conversation_id}",
+    status_code=status.HTTP_200_OK
+)
+def remove_conversation(conversation_id: int):
+    
+    """Delete a conversation and its messages."""
+
+    try:
+        deleted = delete_conversation(conversation_id)
+
+        if not deleted:
+            raise HTTPException(
+                status_code=404,
+                detail="Conversation not found."
+            )
+
+        return {
+            "message": "Conversation deleted successfully.",
+            "conversation_id": conversation_id
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to delete conversation."
         )

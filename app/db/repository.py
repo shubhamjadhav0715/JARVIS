@@ -170,3 +170,28 @@ def update_conversation_title(
 
     finally:
         connection.close()
+
+def delete_conversation(conversation_id: int) -> bool:
+    """Delete a conversation and its messages."""
+
+    connection = get_connection()
+
+    try:
+        cursor = connection.execute(
+            """
+            DELETE FROM conversations
+            WHERE id = ?
+            """,
+            (conversation_id,)
+        )
+
+        connection.commit()
+
+        return cursor.rowcount > 0
+
+    except sqlite3.Error:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
