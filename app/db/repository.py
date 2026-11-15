@@ -94,3 +94,79 @@ def get_messages(conversation_id: int) -> list[dict]:
 
     finally:
         connection.close()
+
+
+def get_conversation(conversation_id: int) -> dict | None:
+    """Retrieve a conversation by its ID."""
+
+    connection = get_connection()
+
+    try:
+        cursor = connection.execute(
+            """
+            SELECT id, title, created_at, updated_at
+            FROM conversations
+            WHERE id = ?
+            """,
+            (conversation_id,)
+        )
+
+        row = cursor.fetchone()
+
+        return dict(row) if row else None
+
+    finally:
+        connection.close()
+
+
+def get_all_conversations() -> list[dict]:
+    """Retrieve all conversations."""
+
+    connection = get_connection()
+
+    try:
+        cursor = connection.execute(
+            """
+            SELECT id, title, created_at, updated_at
+            FROM conversations
+            ORDER BY updated_at DESC, id DESC
+            """
+        )
+
+        return [dict(row) for row in cursor.fetchall()]
+
+    finally:
+        connection.close()
+
+def update_conversation_title(
+    conversation_id: int,
+    new_title: str
+) -> bool:
+    """Update a conversation title."""
+
+    if not new_title.strip():
+        raise ValueError("Conversation title cannot be empty.")
+
+    connection = get_connection()
+
+    try:
+        cursor = connection.execute(
+            """
+            UPDATE conversations
+            SET title = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (new_title.strip(), conversation_id)
+        )
+
+        connection.commit()
+
+        return cursor.rowcount > 0
+
+    except sqlite3.Error:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
