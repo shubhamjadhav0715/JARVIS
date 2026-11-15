@@ -6,6 +6,7 @@ from app.db.repository import add_message, get_conversation
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.ai_service import (
     AIServiceNotConfiguredError,
+    AIServiceUnavailableError,
     generate_reply,
 )
 
@@ -35,16 +36,10 @@ async def send_chat_message(request: ChatRequest):
     try:
         assistant_message = await generate_reply(request.message)
 
-    except AIServiceNotConfiguredError as error:
+    except (AIServiceNotConfiguredError, AIServiceUnavailableError) as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(error),
-        ) from error
-
-    except NotImplementedError as error:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="AI provider integration is not implemented yet.",
         ) from error
 
     except Exception as error:
