@@ -12,8 +12,12 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    ai_provider: str = "ollama"
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    ollama_model: str = "llama3.2:1b"
+
+    # Retained for a possible future OpenAI provider.
     openai_api_key: str | None = None
-    openai_model: str = "gpt-6-luna"
 
 
 settings = Settings()
