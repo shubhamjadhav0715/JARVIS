@@ -1,25 +1,43 @@
-"""AI service interface for JARVIS.
+"""OpenAI-powered AI service for JARVIS."""
 
-The provider integration will be added after API credentials are configured.
-"""
+from openai import AsyncOpenAI
 
 from app.core.config import settings
 
 
 class AIServiceNotConfiguredError(Exception):
-    """Raised when the AI provider is not ready to handle requests."""
+    """Raised when the AI provider is not configured."""
 
 
 async def generate_reply(message: str) -> str:
-    """Generate an assistant reply.
+    """Generate a reply using the configured OpenAI model."""
 
-    This initial implementation deliberately does not return a fake response.
-    """
     if not settings.openai_api_key:
         raise AIServiceNotConfiguredError(
             "AI provider is not configured. Add an API key before using chat."
         )
 
-    raise NotImplementedError(
-        "The AI provider integration has not been implemented yet."
-    )
+    client = AsyncOpenAI(api_key=settings.openai_api_key)
+
+    try:
+        response = await client.responses.create(
+            model=settings.openai_model,
+            instructions=(
+                "You are JARVIS, a helpful personal AI assistant. "
+                "Be clear, accurate, and concise. Do not claim to perform "
+                "actions unless they have actually been completed."
+            ),
+            input=message,
+            max_output_tokens=300,
+            store=False,
+        )
+
+        reply = response.output_text.strip()
+
+        if not reply:
+            raise RuntimeError("The AI provider returned an empty response.")
+
+        return reply
+
+    finally:
+        await client.close()
