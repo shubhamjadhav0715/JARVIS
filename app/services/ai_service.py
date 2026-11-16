@@ -19,8 +19,21 @@ class AIServiceUnavailableError(Exception):
 def _send_ollama_request(
     message: str,
     conversation_history: list[dict] | None = None,
+    permanent_memories: list[dict] | None = None,
 ) -> str:
-    """Send the recent conversation context and new message to Ollama."""
+    """Send saved memories, recent conversation context, and the new message to Ollama."""
+
+    memory_context = json.dumps(
+        [
+            {
+                "category": item.get("category", ""),
+                "key": item.get("memory_key", ""),
+                "value": item.get("memory_value", ""),
+            }
+            for item in (permanent_memories or [])
+        ],
+        ensure_ascii=False,
+    )
 
     url = f"{settings.ollama_base_url.rstrip('/')}/api/chat"
     ollama_messages = [
@@ -28,11 +41,14 @@ def _send_ollama_request(
             "role": "system",
             "content": (
                 "You are JARVIS, the user's personal AI assistant. "
-                "Use the conversation history to understand follow-up questions "
-                "and remember details within this conversation. You are not a "
-                "fictional movie character. Do not invent personal details, "
-                "devices, permissions, or actions. Be helpful, accurate, and "
-                "concise. Reply in the language used by the user."
+                "Use the permanent memory provided below when it is relevant. "
+                "Treat it as user-approved information, but do not invent or "
+                "guess details that are not stored. If information is missing "
+                "or conflicting, say so. Use conversation history to understand "
+                "follow-up questions. You are not a fictional movie character. "
+                "Do not invent devices, permissions, or actions. Be helpful, "
+                "accurate, and concise. Reply in the language used by the user.\n\n"
+                f"PERMANENT USER MEMORY: {memory_context}"
             ),
         }
     ]
@@ -82,8 +98,9 @@ def _send_ollama_request(
 async def generate_reply(
     message: str,
     conversation_history: list[dict] | None = None,
+    permanent_memories: list[dict] | None = None,
 ) -> str:
-    """Generate a reply using the configured local Ollama model and history."""
+    """Generate a reply using Ollama, conversation history, and permanent memories."""
 
     if settings.ai_provider.lower() != "ollama":
         raise AIServiceNotConfiguredError(
@@ -94,4 +111,5 @@ async def generate_reply(
         _send_ollama_request,
         message,
         conversation_history,
+        permanent_memories,
     )
