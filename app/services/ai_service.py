@@ -16,26 +16,40 @@ class AIServiceUnavailableError(Exception):
     """Raised when the local AI provider cannot be reached."""
 
 
-def _send_ollama_request(message: str) -> str:
-    """Send a chat request to the local Ollama HTTP API."""
+def _send_ollama_request(
+    message: str,
+    conversation_history: list[dict] | None = None,
+) -> str:
+    """Send the recent conversation context and new message to Ollama."""
 
     url = f"{settings.ollama_base_url.rstrip('/')}/api/chat"
+    ollama_messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are JARVIS, the user's personal AI assistant. "
+                "Use the conversation history to understand follow-up questions "
+                "and remember details within this conversation. You are not a "
+                "fictional movie character. Do not invent personal details, "
+                "devices, permissions, or actions. Be helpful, accurate, and "
+                "concise. Reply in the language used by the user."
+            ),
+        }
+    ]
+
+    # Keep only the latest 10 saved messages to limit memory use.
+    for item in (conversation_history or [])[-10:]:
+        role = item.get("role")
+        content = item.get("content", "")
+        if role in ("user", "assistant") and content:
+            ollama_messages.append({"role": role, "content": content})
+
+    ollama_messages.append({"role": "user", "content": message})
+
     payload = {
         "model": settings.ollama_model,
         "stream": False,
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You are JARVIS, the user's personal AI assistant. "
-                    "You are not a fictional movie character. Do not invent "
-                    "personal details, devices, permissions, or actions. "
-                    "Be helpful, accurate, and concise. Reply in the language "
-                    "used by the user."
-                ),
-            },
-            {"role": "user", "content": message},
-        ],
+        "messages": ollama_messages,
         "options": {"num_predict": 300},
     }
 
@@ -65,12 +79,19 @@ def _send_ollama_request(message: str) -> str:
     return reply
 
 
-async def generate_reply(message: str) -> str:
-    """Generate a reply using the configured local Ollama model."""
+async def generate_reply(
+    message: str,
+    conversation_history: list[dict] | None = None,
+) -> str:
+    """Generate a reply using the configured local Ollama model and history."""
 
     if settings.ai_provider.lower() != "ollama":
         raise AIServiceNotConfiguredError(
             f"Unsupported AI provider: {settings.ai_provider}"
         )
 
-    return await asyncio.to_thread(_send_ollama_request, message)
+    return await asyncio.to_thread(
+        _send_ollama_request,
+        message,
+        conversation_history,
+    )
