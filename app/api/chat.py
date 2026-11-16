@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, status
 
+from app.db.memory_repository import get_all_memories
 from app.db.repository import add_message, get_conversation, get_messages
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.ai_service import (
@@ -23,7 +24,7 @@ router = APIRouter(
     status_code=status.HTTP_200_OK,
 )
 async def send_chat_message(request: ChatRequest):
-    """Send a message to JARVIS with the conversation's recent context."""
+    """Send a message to JARVIS with conversation context and permanent memories."""
 
     conversation = get_conversation(request.conversation_id)
 
@@ -35,9 +36,11 @@ async def send_chat_message(request: ChatRequest):
 
     try:
         conversation_history = get_messages(request.conversation_id)
+        permanent_memories = get_all_memories()
         assistant_message = await generate_reply(
             request.message,
             conversation_history,
+            permanent_memories,
         )
 
     except (AIServiceNotConfiguredError, AIServiceUnavailableError) as error:
