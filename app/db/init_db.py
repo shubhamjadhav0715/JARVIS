@@ -1,4 +1,3 @@
-
 import sqlite3
 
 from app.db.database import get_connection
@@ -36,10 +35,28 @@ def initialize_database():
             )
         """)
 
+        # Personal memories table
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS memories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                category TEXT NOT NULL,
+                memory_key TEXT NOT NULL UNIQUE,
+                memory_value TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         # Improve message search by conversation
         connection.execute("""
             CREATE INDEX IF NOT EXISTS idx_messages_conversation
             ON messages(conversation_id, created_at)
+        """)
+
+        # Improve memory lookup by category
+        connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_memories_category
+            ON memories(category)
         """)
 
         connection.commit()
