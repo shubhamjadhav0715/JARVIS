@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, status
 
-from app.db.repository import add_message, get_conversation
+from app.db.repository import add_message, get_conversation, get_messages
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.ai_service import (
     AIServiceNotConfiguredError,
@@ -23,7 +23,7 @@ router = APIRouter(
     status_code=status.HTTP_200_OK,
 )
 async def send_chat_message(request: ChatRequest):
-    """Send a message to JARVIS and receive an AI reply."""
+    """Send a message to JARVIS with the conversation's recent context."""
 
     conversation = get_conversation(request.conversation_id)
 
@@ -34,7 +34,11 @@ async def send_chat_message(request: ChatRequest):
         )
 
     try:
-        assistant_message = await generate_reply(request.message)
+        conversation_history = get_messages(request.conversation_id)
+        assistant_message = await generate_reply(
+            request.message,
+            conversation_history,
+        )
 
     except (AIServiceNotConfiguredError, AIServiceUnavailableError) as error:
         raise HTTPException(
