@@ -66,3 +66,46 @@ def get_all_memories() -> list[dict]:
 
     finally:
         connection.close()
+
+
+def get_memory(memory_key: str) -> dict | None:
+    """Return one memory by its unique key."""
+
+    connection = get_connection()
+
+    try:
+        row = connection.execute(
+            """
+            SELECT id, category, memory_key, memory_value,
+                   created_at, updated_at
+            FROM memories
+            WHERE memory_key = ?
+            """,
+            (memory_key.strip(),),
+        ).fetchone()
+
+        return dict(row) if row else None
+
+    finally:
+        connection.close()
+
+
+def delete_memory(memory_key: str) -> bool:
+    """Delete one memory by its unique key."""
+
+    connection = get_connection()
+
+    try:
+        cursor = connection.execute(
+            "DELETE FROM memories WHERE memory_key = ?",
+            (memory_key.strip(),),
+        )
+        connection.commit()
+        return cursor.rowcount > 0
+
+    except sqlite3.Error:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
